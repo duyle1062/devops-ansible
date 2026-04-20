@@ -1,0 +1,26 @@
+name: Deploy React with Ansible
+
+on:
+  push:
+    branches: [ "main" ]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: SSH and Deploy
+        uses: appleboy/ssh-action@v0.1.6
+        with:
+          host: ${{ secrets.VM_HOST }}
+          username: ${{ secrets.VM_USER }}
+          key: ${{ secrets.VM_SSH_KEY }}
+          script: |
+            cd ~/devops-project
+            git pull
+            cd frontend
+            npm install
+            npm run build
+            cp -r build ../deploy/
+            cd ../ansible
+            ansible-playbook -i inventory.ini site.yml
