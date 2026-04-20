@@ -1,0 +1,7 @@
+- name: Setup server
+  hosts: local
+  become: yes
+  roles:
+    - docker
+    - nginx
+    - app

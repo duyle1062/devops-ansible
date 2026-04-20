@@ -1,0 +1,11 @@
+- name: Remove default nginx html
+  file:
+    path: /var/www/html/*
+    state: absent
+  become: yes
+
+- name: Copy React build to nginx folder
+  copy:
+    src: /home/vboxuser/devops-project/deploy/build/
+    dest: /var/www/html/
+  become: yes
