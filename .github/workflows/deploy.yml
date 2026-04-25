@@ -1,4 +1,4 @@
-name: Deploy React with Ansible
+name: Build & Deploy to AWS
 
 on:
   push:
@@ -9,18 +9,37 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: SSH and Deploy
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Setup Node
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
+
+      - name: Build React
+        run: |
+          cd frontend
+          npm install
+          npm run build
+
+      - name: Copy build to server
+        uses: appleboy/scp-action@v0.1.4
+        with:
+          host: ${{ secrets.VM_HOST }}
+          username: ${{ secrets.VM_USER }}
+          key: ${{ secrets.VM_SSH_KEY }}
+          source: "frontend/build/*"
+          target: "~/devops-ansible/deploy/"
+
+      - name: Deploy with Ansible
         uses: appleboy/ssh-action@v0.1.6
         with:
           host: ${{ secrets.VM_HOST }}
           username: ${{ secrets.VM_USER }}
           key: ${{ secrets.VM_SSH_KEY }}
           script: |
-            cd ~/devops-project
+            cd ~/devops-ansible
             git pull
-            cd frontend
-            npm install
-            npm run build
-            cp -r build ../deploy/
-            cd ../ansible
+            cd ansible
             ansible-playbook -i inventory.ini site.yml
