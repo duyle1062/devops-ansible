@@ -6,6 +6,6 @@
 
 - name: Copy React build to nginx folder
   copy:
-    src: /home/trongtin24521790/my-projects/devops-ansible/deploy/build/
+    src: "{{ playbook_dir }}/../deploy/build/"
     dest: "{{ deploy_path }}"
   become: yes
