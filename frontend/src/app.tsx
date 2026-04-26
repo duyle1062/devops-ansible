@@ -20,13 +20,6 @@ import PaymentResult from "./pages/PaymentResult/PaymentResult";
 import Orders from "./pages/Orders/Orders";
 import OrderDetail from "./pages/OrderDetail/OrderDetail";
 
-import LayoutAdmin from "./components/LayoutAdmin/LayoutAdmin";
-import Dashboard from "./pages/Admin/Dashboard/Dashboard";
-import OrderManagement from "./pages/Admin/OrderManagement/OrderManagement";
-import ProductManagement from "./pages/Admin/ProductManagement/ProductManagement";
-import UserManagement from "./pages/Admin/UserManagement/UserManagement";
-import Reports from "./pages/Admin/Reports/Reports";
-
 export default function App() {
   return (
     <AuthProvider>
@@ -47,14 +40,6 @@ export default function App() {
           <Route path="/category/:slug" element={<Category />} />
           <Route path="/group-order" element={<GroupOrder />} />
           <Route path="/payment/result" element={<PaymentResult />} />
-
-          <Route element={<LayoutAdmin />}>
-            <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/orders-admin" element={<OrderManagement />} />
-            <Route path="/products-admin" element={<ProductManagement />} />
-            <Route path="/users-admin" element={<UserManagement />} />
-            <Route path="/reports" element={<Reports />} />
-          </Route>
 
           {/* Protected Routes - Require Authentication */}
           <Route

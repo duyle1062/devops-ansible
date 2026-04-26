@@ -5,6 +5,7 @@ import { Product } from "../../types/product.types";
 import recommendationService from "../../services/recommendation.service";
 import { useAuth } from "../../context/AuthContext";
 import { FaChevronLeft, FaChevronRight } from "react-icons/fa";
+import { getRandomHardcodedDishImage } from "../../utils/dishImage.util";
 
 interface CardProps {
   products: Product[];
@@ -122,11 +123,13 @@ const Card: React.FC<CardProps> = ({ products, title, onProductClick }) => {
                         src: (e.target as HTMLImageElement).src,
                         productId: product.id,
                         images: product.images,
-                      }
+                      },
                     );
-                    // Set placeholder on error
-                    (e.target as HTMLImageElement).src =
-                      "https://via.placeholder.com/300x300?text=No+Image";
+                    const target = e.currentTarget;
+                    target.onerror = null;
+                    target.src = getRandomHardcodedDishImage(
+                      `${product.id}-${product.slug}-fallback`,
+                    );
                   }}
                 />
               </div>

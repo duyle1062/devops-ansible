@@ -1,9 +1,6 @@
-/**
- * Recommendation Service - Handles all recommendation-related API operations
- * Based on IE221 Recommendation System Documentation
- */
-import axiosInstance from "./axios.instance";
 import { Product } from "../types/product.types";
+import { getProducts } from "./offlineDb";
+import { getProductDisplayImage } from "../utils/dishImage.util";
 
 interface RecommendationResponse {
   count: number;
@@ -37,18 +34,8 @@ class RecommendationService {
    * @param limit - Number of recommendations to fetch (default: 10)
    */
   async getRecommendations(limit: number = 10): Promise<Product[]> {
-    try {
-      const response = await axiosInstance.get<RecommendationResponse>(
-        `/api/recommendations/`,
-        {
-          params: { limit },
-        }
-      );
-      return response.data.results;
-    } catch (error: any) {
-      console.error("[Recommendation] Failed to fetch recommendations:", error);
-      throw error;
-    }
+    const products = getProducts();
+    return products.slice(0, limit);
   }
 
   /**
@@ -58,21 +45,9 @@ class RecommendationService {
    * @param limit - Number of popular products to fetch (default: 8)
    */
   async getPopularProducts(params?: PopularProductsParams): Promise<Product[]> {
-    try {
-      const response = await axiosInstance.get<RecommendationResponse>(
-        `/api/products/popular/`,
-        {
-          params: { limit: params?.limit || 8 },
-        }
-      );
-      return response.data.results;
-    } catch (error: any) {
-      console.error(
-        "[Recommendation] Failed to fetch popular products:",
-        error
-      );
-      throw error;
-    }
+    const limit = params?.limit || 8;
+    const products = getProducts();
+    return products.slice(0, limit);
   }
 
   /**
@@ -85,21 +60,10 @@ class RecommendationService {
     limit?: number;
     days?: number;
   }): Promise<Product[]> {
-    try {
-      const response = await axiosInstance.get<RecommendationResponse>(
-        `/api/products/best-sellers/`,
-        {
-          params: {
-            limit: params?.limit || 8,
-            ...(params?.days && { days: params.days }),
-          },
-        }
-      );
-      return response.data.results;
-    } catch (error: any) {
-      console.error("[Recommendation] Failed to fetch best sellers:", error);
-      throw error;
-    }
+    const limit = params?.limit || 8;
+    const products = getProducts();
+    // offline demo: just return last N
+    return products.slice(-limit);
   }
 
   /**
@@ -111,23 +75,17 @@ class RecommendationService {
    */
   async getSimilarProducts(
     productId: number,
-    params?: SimilarProductsParams
+    params?: SimilarProductsParams,
   ): Promise<Product[]> {
-    try {
-      const response = await axiosInstance.get<RecommendationResponse>(
-        `/api/recommendations/similar/${productId}/`,
-        {
-          params: { limit: params?.limit || 6 },
-        }
-      );
-      return response.data.results;
-    } catch (error: any) {
-      console.error(
-        `[Recommendation] Failed to fetch similar products for product ${productId}:`,
-        error
-      );
-      throw error;
-    }
+    const limit = params?.limit || 6;
+    const products = getProducts();
+    const base = products.find((p) => p.id === productId);
+    if (!base) return products.slice(0, limit);
+    const sameCategory = products.filter(
+      (p) =>
+        p.id !== productId && p.category.slug_name === base.category.slug_name,
+    );
+    return sameCategory.slice(0, limit);
   }
 
   /**
@@ -137,22 +95,8 @@ class RecommendationService {
    * @param productId - ID of the product being interacted with
    */
   async trackInteraction(productId: number): Promise<void> {
-    try {
-      const payload: TrackInteractionRequest = {
-        product_id: productId,
-      };
-
-      await axiosInstance.post<TrackInteractionResponse>(
-        `/api/recommendations/track_interaction/`,
-        payload
-      );
-    } catch (error: any) {
-      // Don't throw error for tracking failures - fail silently
-      console.warn(
-        `[Recommendation] Failed to track interaction for product ${productId}:`,
-        error.response?.data || error.message
-      );
-    }
+    // Offline: no-op
+    void productId;
   }
 
   /**
@@ -160,23 +104,7 @@ class RecommendationService {
    * @param product - Product object with images array
    */
   getPrimaryImage(product: Product): string {
-    // Debug: Log product image status
-    if (!product.images || product.images.length === 0) {
-      console.warn(
-        `[Recommendation] No images found for product: ${product.name} (ID: ${product.id})`
-      );
-      return "https://via.placeholder.com/300x300?text=No+Image";
-    }
-
-    const primaryImage = product.images.find((img) => img.is_primary);
-    if (primaryImage) {
-      return primaryImage.image_url;
-    }
-
-    return (
-      product.images[0]?.image_url ||
-      "https://via.placeholder.com/300x300?text=No+Image"
-    );
+    return getProductDisplayImage(product);
   }
 
   /**
@@ -189,4 +117,5 @@ class RecommendationService {
   }
 }
 
-export default new RecommendationService();
+const recommendationService = new RecommendationService();
+export default recommendationService;

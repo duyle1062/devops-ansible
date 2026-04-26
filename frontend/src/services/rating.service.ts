@@ -1,10 +1,10 @@
-import axiosInstance from "./axios.instance";
-import { API_ENDPOINTS } from "../config/api.config";
 import {
   Rating,
   RatingListResponse,
   CreateRatingData,
 } from "../types/product.types";
+import authService from "./auth.service";
+import { addRating, getRatingsByProduct, makeAppError } from "./offlineDb";
 
 /**
  * Rating Service - Handles all rating-related API operations
@@ -22,29 +22,26 @@ class RatingService {
     productId: number,
     page: number = 1,
     pageSize: number = 10,
-    signal?: AbortSignal
+    signal?: AbortSignal,
   ): Promise<RatingListResponse> {
-    try {
-      const config = signal ? { signal } : {};
-      const response = await axiosInstance.get<RatingListResponse>(
-        API_ENDPOINTS.RATINGS.LIST(productId),
-        {
-          ...config,
-          params: {
-            page,
-            page_size: pageSize,
-          },
-        }
-      );
-      return response.data;
-    } catch (error: any) {
-      console.error("Get ratings error:", error);
-      throw {
-        ...error,
-        response: error.response,
-        detail: error.response?.data?.detail || error.message,
-      };
+    if (signal?.aborted) {
+      throw makeAppError("Request aborted", { name: "AbortError" });
     }
+
+    const map = getRatingsByProduct();
+    const all = map[productId] || [];
+    const safePage = Math.max(1, page);
+    const safeSize = Math.max(1, pageSize);
+    const start = (safePage - 1) * safeSize;
+    const end = start + safeSize;
+    const results = all.slice(start, end);
+
+    return {
+      count: all.length,
+      next: end < all.length ? String(safePage + 1) : null,
+      previous: safePage > 1 ? String(safePage - 1) : null,
+      results,
+    };
   }
 
   /**
@@ -56,21 +53,33 @@ class RatingService {
    */
   async createRating(
     productId: number,
-    data: CreateRatingData
+    data: CreateRatingData,
   ): Promise<Rating> {
-    try {
-      const response = await axiosInstance.post<Rating>(
-        API_ENDPOINTS.RATINGS.CREATE(productId),
-        data
-      );
-      return response.data;
-    } catch (error: any) {
-      console.error("Create rating error:", error);
-      console.log("Full error response:", error.response);
-
-      // Let the error propagate with full context
-      throw error;
+    if (data.rating < 1 || data.rating > 5) {
+      throw makeAppError("Rating must be between 1 and 5", {
+        detail: "Rating must be between 1 and 5",
+      });
     }
+
+    const map = getRatingsByProduct();
+    const current = map[productId] || [];
+    const maxId = current.reduce((m, r) => Math.max(m, r.id), 0);
+    const user = authService.getUser();
+
+    const rating: Rating = {
+      id: maxId + 1,
+      user: {
+        id: user?.id || 0,
+        first_name: user?.firstname || "Guest",
+        last_name: user?.lastname || "User",
+      },
+      rating: data.rating,
+      comment: data.comment,
+      created_at: new Date().toISOString(),
+    };
+
+    addRating(productId, rating);
+    return rating;
   }
 
   /**
@@ -79,19 +88,11 @@ class RatingService {
    * If the user hasn't purchased, the backend will return an error
    */
   async canUserRate(productId: number): Promise<boolean> {
-    try {
-      // Try to get ratings - if authenticated, backend will check purchase
-      await this.getRatings(productId, 1, 1);
-      return true;
-    } catch (error: any) {
-      // If 403 or specific error about not purchasing, return false
-      if (error.response?.status === 403) {
-        return false;
-      }
-      // For other errors, assume user can rate (will be caught on submit)
-      return true;
-    }
+    // Offline mode: no purchase validation
+    void productId;
+    return true;
   }
 }
 
-export default new RatingService();
+const ratingService = new RatingService();
+export default ratingService;

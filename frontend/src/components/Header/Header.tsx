@@ -8,6 +8,7 @@ import { useAuth } from "../../context/AuthContext";
 import { Product } from "../../types/product.types";
 import productService from "../../services/product.service";
 import logoImage from "../../assets/images/Logo_FastFood.png";
+import { getProductDisplayImage } from "../../utils/dishImage.util";
 
 export default function Header() {
   const [openMenu, setOpenMenu] = useState<boolean>(false);
@@ -180,11 +181,7 @@ export default function Header() {
                     onClick={() => handleProductClick(product)}
                   >
                     <img
-                      src={
-                        product.images && product.images.length > 0
-                          ? product.images[0].image_url
-                          : "/placeholder.png"
-                      }
+                      src={getProductDisplayImage(product)}
                       alt={product.name}
                       className={styles["result-image"]}
                     />
@@ -192,7 +189,7 @@ export default function Header() {
                       <p className={styles["result-name"]}>{product.name}</p>
                       <p className={styles["result-price"]}>
                         {new Intl.NumberFormat("en-US").format(
-                          Math.round(parseFloat(product.price))
+                          Math.round(parseFloat(product.price)),
                         )}{" "}
                         VND
                       </p>
