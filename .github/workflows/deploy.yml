@@ -38,8 +38,10 @@ jobs:
           host: ${{ secrets.VM_HOST }}
           username: ${{ secrets.VM_USER }}
           key: ${{ secrets.VM_SSH_KEY }}
-          source: "frontend/build/*"
-          target: "/home/ubuntu/devops-ansible/deploy/"
+          port: 22
+          source: "frontend/build"
+          target: "/home/ubuntu/devops-ansible/deploy"
+          strip_components: 1
 
       - name: Deploy with Ansible
         uses: appleboy/ssh-action@v0.1.6
