@@ -9,21 +9,25 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      # 1. Checkout code
       - name: Checkout code
         uses: actions/checkout@v3
 
+      # 2. Setup Node
       - name: Setup Node
         uses: actions/setup-node@v3
         with:
           node-version: 18
 
+      # 3. Build React
       - name: Build React
         run: |
           cd frontend
           npm install
           npm run build
 
-      - name: Prepare directory on server
+      # 4. Prepare folder on EC2
+      - name: Prepare deploy folder
         uses: appleboy/ssh-action@v0.1.6
         with:
           host: ${{ secrets.VM_HOST }}
@@ -32,25 +36,44 @@ jobs:
           script: |
             mkdir -p /home/ubuntu/devops-ansible/deploy
 
+      # 5. Clean old files
+      - name: Clean deploy folder
+        uses: appleboy/ssh-action@v0.1.6
+        with:
+          host: ${{ secrets.VM_HOST }}
+          username: ubuntu
+          key: ${{ secrets.VM_SSH_KEY }}
+          script: |
+            rm -rf /home/ubuntu/devops-ansible/deploy/*
+
+      # 6. Copy build to server (FIXED)
       - name: Copy build to server
         uses: appleboy/scp-action@v0.1.4
         with:
           host: ${{ secrets.VM_HOST }}
-          username: ${{ secrets.VM_USER }}
+          username: ubuntu
           key: ${{ secrets.VM_SSH_KEY }}
           port: 22
-          source: "frontend/build"
-          target: "/home/ubuntu/devops-ansible/deploy"
-          strip_components: 1
+          source: "frontend/build/"
+          target: "/home/ubuntu/devops-ansible/deploy/"
 
+      # 7. Verify copy (debug)
+      - name: Verify files on server
+        uses: appleboy/ssh-action@v0.1.6
+        with:
+          host: ${{ secrets.VM_HOST }}
+          username: ubuntu
+          key: ${{ secrets.VM_SSH_KEY }}
+          script: |
+            ls -la /home/ubuntu/devops-ansible/deploy
+
+      # 8. Deploy with Ansible
       - name: Deploy with Ansible
         uses: appleboy/ssh-action@v0.1.6
         with:
           host: ${{ secrets.VM_HOST }}
-          username: ${{ secrets.VM_USER }}
+          username: ubuntu
           key: ${{ secrets.VM_SSH_KEY }}
           script: |
-            cd /home/ubuntu/devops-ansible
-            git pull
-            cd ansible
+            cd /home/ubuntu/devops-ansible/ansible
             ansible-playbook -i inventory.ini site.yml
