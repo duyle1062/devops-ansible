@@ -96,6 +96,20 @@ const ProductDetailPage: React.FC = () => {
     return desc;
   }, [product]);
 
+  const productImageGallery = useMemo(() => {
+    if (!product) return [];
+    return getProductImageGallery(product);
+  }, [product]);
+
+  const displayDescription = useMemo(() => {
+    if (!product) return "";
+    const desc = (product.description || "").trim();
+    if (!desc || desc.includes("(offline demo)")) {
+      return "This dish is prepared daily with fresh ingredients and a well-balanced flavor profile for a quick yet high-quality meal. It pairs nicely with fresh vegetables and a cold drink for a complete taste experience.";
+    }
+    return desc;
+  }, [product]);
+
   useEffect(() => {
     const abortController = new AbortController();
 
