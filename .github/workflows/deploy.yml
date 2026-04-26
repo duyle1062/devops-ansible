@@ -2,7 +2,7 @@ name: Build & Deploy to AWS
 
 on:
   push:
-    branches: [ "main" ]
+    branches: ["main"]
 
 jobs:
   deploy:
@@ -23,6 +23,15 @@ jobs:
           npm install
           npm run build
 
+      - name: Prepare directory on server
+        uses: appleboy/ssh-action@v0.1.6
+        with:
+          host: ${{ secrets.VM_HOST }}
+          username: ubuntu
+          key: ${{ secrets.VM_SSH_KEY }}
+          script: |
+            mkdir -p /home/ubuntu/devops-ansible/deploy
+
       - name: Copy build to server
         uses: appleboy/scp-action@v0.1.4
         with:
@@ -30,7 +39,7 @@ jobs:
           username: ${{ secrets.VM_USER }}
           key: ${{ secrets.VM_SSH_KEY }}
           source: "frontend/build/*"
-          target: "~/devops-ansible/deploy/"
+          target: "/home/ubuntu/devops-ansible/deploy/"
 
       - name: Deploy with Ansible
         uses: appleboy/ssh-action@v0.1.6
@@ -39,7 +48,7 @@ jobs:
           username: ${{ secrets.VM_USER }}
           key: ${{ secrets.VM_SSH_KEY }}
           script: |
-            cd ~/devops-ansible
+            cd /home/ubuntu/devops-ansible
             git pull
             cd ansible
             ansible-playbook -i inventory.ini site.yml
