@@ -191,6 +191,7 @@
   line-height: 1.7;
   color: var(--text-color-medium);
   font-size: 15px;
+  white-space: pre-line;
 }
 
 .reviewsList {

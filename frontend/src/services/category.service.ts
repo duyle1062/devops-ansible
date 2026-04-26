@@ -1,4 +1,4 @@
-import axiosInstance from "./axios.instance";
+import { getCategories } from "./offlineDb";
 
 export interface Category {
   id: number;
@@ -13,13 +13,12 @@ class CategoryService {
    * GET /api/category/
    */
   async getCategories(): Promise<Category[]> {
-    try {
-      const response = await axiosInstance.get<Category[]>("/api/category/");
-      return response.data;
-    } catch (error: any) {
-      console.error("Get categories error:", error);
-      throw error;
-    }
+    return getCategories().map((c) => ({
+      id: c.id,
+      name: c.name,
+      slug_name: c.slug_name,
+      is_active: c.is_active,
+    }));
   }
 
   /**
@@ -27,15 +26,12 @@ class CategoryService {
    * GET /api/category/{slug}/
    */
   async getCategoryBySlug(slug: string): Promise<Category> {
-    try {
-      const response = await axiosInstance.get<Category>(
-        `/api/category/${slug}/`
-      );
-      return response.data;
-    } catch (error: any) {
-      console.error("Get category detail error:", error);
-      throw error;
+    const all = await this.getCategories();
+    const found = all.find((c) => c.slug_name === slug);
+    if (!found) {
+      throw new Error("Category not found");
     }
+    return found;
   }
 }
 

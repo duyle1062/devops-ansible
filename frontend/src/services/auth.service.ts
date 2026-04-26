@@ -1,6 +1,5 @@
-import axiosInstance from "./axios.instance";
-import { API_ENDPOINTS, STORAGE_KEYS } from "../config/api.config";
-import { AxiosError } from "axios";
+import { STORAGE_KEYS } from "../config/api.config";
+import { makeAppError } from "./offlineDb";
 
 // Enums
 export enum UserRole {
@@ -64,27 +63,8 @@ export interface UserData {
   updated_at?: string;
 }
 
-// API Error Response
-export interface ApiErrorResponse {
-  detail?: string;
-  [key: string]: any;
-}
-
 // Auth Service
 class AuthService {
-  // Private helper methods
-  private handleApiError(error: unknown): never {
-    if (error instanceof AxiosError) {
-      const errorData = error.response?.data as ApiErrorResponse;
-      console.error("API Error:", {
-        status: error.response?.status,
-        data: errorData,
-        message: error.message,
-      });
-    }
-    throw error;
-  }
-
   private validateEmail(email: string): boolean {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     return emailRegex.test(email);
@@ -107,153 +87,119 @@ class AuthService {
 
   // Register new user
   async register(data: RegisterData): Promise<{ id: number; email: string }> {
-    try {
-      // Validate email format
-      if (!this.validateEmail(data.email)) {
-        throw new Error("Invalid email format");
-      }
-
-      // Validate password match
-      if (data.password !== data.re_password) {
-        throw new Error("Passwords do not match");
-      }
-
-      const response = await axiosInstance.post<{ id: number; email: string }>(
-        API_ENDPOINTS.AUTH.REGISTER,
-        data
-      );
-      return response.data;
-    } catch (error) {
-      this.handleApiError(error);
+    if (!this.validateEmail(data.email)) {
+      throw makeAppError("Invalid email format", {
+        detail: "Invalid email format",
+      });
     }
+    if (data.password !== data.re_password) {
+      throw makeAppError("Passwords do not match", {
+        detail: "Passwords do not match",
+      });
+    }
+
+    const now = new Date().toISOString();
+    const user: UserData = {
+      id: Date.now(),
+      email: data.email,
+      firstname: data.firstname,
+      lastname: data.lastname,
+      phone: data.phone,
+      gender: data.gender,
+      role: UserRole.USER,
+      is_active: true,
+      created_at: now,
+      updated_at: now,
+    };
+    localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(user));
+    return { id: user.id, email: user.email };
   }
 
   // Verify email with uid and token
   async verifyEmail(data: VerifyEmailData): Promise<void> {
-    try {
-      await axiosInstance.post(
-        API_ENDPOINTS.AUTH.VERIFY_EMAIL,
-        data
-      );
-    } catch (error) {
-      this.handleApiError(error);
-    }
+    // Offline: no-op
+    void data;
   }
 
   // Login
   async login(data: LoginData): Promise<LoginResponse> {
-    try {
-      // Validate email format
-      if (!this.validateEmail(data.email)) {
-        throw new Error("Invalid email format");
-      }
-
-      const response = await axiosInstance.post<LoginResponse>(
-        API_ENDPOINTS.AUTH.LOGIN,
-        data
-      );
-      
-      // Validate response data
-      if (!response.data.access || !response.data.refresh) {
-        throw new Error("Invalid login response");
-      }
-
-      // Save tokens to localStorage
-      localStorage.setItem(STORAGE_KEYS.ACCESS_TOKEN, response.data.access);
-      localStorage.setItem(STORAGE_KEYS.REFRESH_TOKEN, response.data.refresh);
-      
-      return response.data;
-    } catch (error) {
-      this.handleApiError(error);
+    if (!this.validateEmail(data.email)) {
+      throw makeAppError("Invalid email format", {
+        detail: "Invalid email format",
+      });
     }
+    void data.password;
+
+    const response: LoginResponse = {
+      access: "offline-access",
+      refresh: "offline-refresh",
+    };
+    localStorage.setItem(STORAGE_KEYS.ACCESS_TOKEN, response.access);
+    localStorage.setItem(STORAGE_KEYS.REFRESH_TOKEN, response.refresh);
+
+    const existing = this.getUser();
+    if (!existing || existing.email !== data.email) {
+      const now = new Date().toISOString();
+      const user: UserData = {
+        id: Date.now(),
+        email: data.email,
+        firstname: "Offline",
+        lastname: "User",
+        phone: "",
+        gender: Gender.OTHER,
+        role: UserRole.USER,
+        is_active: true,
+        created_at: now,
+        updated_at: now,
+      };
+      localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(user));
+    }
+
+    return response;
   }
 
   // Get current user info
   async getCurrentUser(): Promise<UserData> {
-    try {
-      const response = await axiosInstance.get<UserData>(
-        API_ENDPOINTS.AUTH.GET_USER
-      );
-      
-      // Sanitize and validate user data
-      const userData = this.sanitizeUserData(response.data);
-      
-      // Save user data to localStorage
-      localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(userData));
-      
-      return userData;
-    } catch (error) {
-      this.handleApiError(error);
+    const user = this.getUser();
+    if (!user) {
+      throw makeAppError("Not authenticated", {
+        detail: "Not authenticated",
+        statusCode: 401,
+      });
     }
+    return user;
   }
 
   // Forgot password - send reset email
   async forgotPassword(data: ForgotPasswordData): Promise<void> {
-    try {
-      // Validate email format
-      if (!this.validateEmail(data.email)) {
-        throw new Error("Invalid email format");
-      }
-
-      await axiosInstance.post(
-        API_ENDPOINTS.AUTH.FORGOT_PASSWORD,
-        data
-      );
-    } catch (error) {
-      this.handleApiError(error);
+    if (!this.validateEmail(data.email)) {
+      throw makeAppError("Invalid email format", {
+        detail: "Invalid email format",
+      });
     }
+    // Offline: no-op
   }
 
   // Reset password confirm with uid and token
   async resetPassword(data: ResetPasswordData): Promise<void> {
-    try {
-      // Validate password match
-      if (data.new_password !== data.re_new_password) {
-        throw new Error("Passwords do not match");
-      }
-
-      // Validate password strength (minimum 6 characters)
-      if (data.new_password.length < 6) {
-        throw new Error("Password must be at least 6 characters");
-      }
-
-      await axiosInstance.post(
-        API_ENDPOINTS.AUTH.RESET_PASSWORD_CONFIRM,
-        data
-      );
-    } catch (error) {
-      this.handleApiError(error);
+    if (data.new_password !== data.re_new_password) {
+      throw makeAppError("Passwords do not match", {
+        detail: "Passwords do not match",
+      });
     }
+    if (data.new_password.length < 6) {
+      throw makeAppError("Password must be at least 6 characters", {
+        detail: "Password must be at least 6 characters",
+      });
+    }
+    // Offline: no-op
   }
 
   // Logout
   async logout(): Promise<void> {
-    try {
-      const refreshToken = this.getRefreshToken();
-      
-      // Call backend logout API to blacklist refresh token
-      if (refreshToken) {
-        try {
-          await axiosInstance.post("/api/auth/logout/", {
-            refresh_token: refreshToken,
-          });
-        } catch (error) {
-          // Even if API call fails, still clear local storage
-          console.error("Logout API error (continuing with local logout):", error);
-        }
-      }
-      
-      // Clear all auth data from localStorage
-      localStorage.removeItem(STORAGE_KEYS.ACCESS_TOKEN);
-      localStorage.removeItem(STORAGE_KEYS.REFRESH_TOKEN);
-      localStorage.removeItem(STORAGE_KEYS.USER);
-    } catch (error) {
-      console.error("Error during logout:", error);
-      // Always clear localStorage even if API fails
-      localStorage.removeItem(STORAGE_KEYS.ACCESS_TOKEN);
-      localStorage.removeItem(STORAGE_KEYS.REFRESH_TOKEN);
-      localStorage.removeItem(STORAGE_KEYS.USER);
-    }
+    localStorage.removeItem(STORAGE_KEYS.ACCESS_TOKEN);
+    localStorage.removeItem(STORAGE_KEYS.REFRESH_TOKEN);
+    localStorage.removeItem(STORAGE_KEYS.USER);
   }
 
   // Check if user is authenticated
@@ -272,7 +218,7 @@ class AuthService {
     try {
       const userStr = localStorage.getItem(STORAGE_KEYS.USER);
       if (!userStr) return null;
-      
+
       const userData = JSON.parse(userStr);
       return this.sanitizeUserData(userData);
     } catch (error) {
@@ -314,4 +260,5 @@ class AuthService {
   }
 }
 
-export default new AuthService();
+const authService = new AuthService();
+export default authService;

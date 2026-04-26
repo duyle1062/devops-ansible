@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { toast, ToastContainer } from "react-toastify";
 import Header from "../../components/Header/Header";
@@ -18,6 +18,10 @@ import {
 } from "../../types/product.types";
 import styles from "./ProductDetail.module.css";
 import { FaUsers } from "react-icons/fa";
+import {
+  getProductDisplayImage,
+  getProductImageGallery,
+} from "../../utils/dishImage.util";
 
 const ProductDetailPage: React.FC = () => {
   const handleAddToGroupOrder = async () => {
@@ -60,7 +64,7 @@ const ProductDetailPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [selectedImage, setSelectedImage] = useState<string>("");
   const [activeTab, setActiveTab] = useState<"description" | "reviews">(
-    "description"
+    "description",
   );
   const [rating, setRating] = useState(0);
   const [comment, setComment] = useState("");
@@ -79,6 +83,20 @@ const ProductDetailPage: React.FC = () => {
   const [similarProducts, setSimilarProducts] = useState<Product[]>([]);
   const [similarLoading, setSimilarLoading] = useState(false);
 
+  const productImageGallery = useMemo(() => {
+    if (!product) return [];
+    return getProductImageGallery(product);
+  }, [product]);
+
+  const displayDescription = useMemo(() => {
+    if (!product) return "";
+    const desc = (product.description || "").trim();
+    if (!desc || desc.includes("(offline demo)")) {
+      return "This dish is prepared daily with fresh ingredients and a well-balanced flavor profile for a quick yet high-quality meal. It pairs nicely with fresh vegetables and a cold drink for a complete taste experience.";
+    }
+    return desc;
+  }, [product]);
+
   useEffect(() => {
     const abortController = new AbortController();
 
@@ -93,15 +111,10 @@ const ProductDetailPage: React.FC = () => {
         const data = await productService.getProductDetail(
           categorySlug,
           productSlug,
-          abortController.signal
+          abortController.signal,
         );
         setProduct(data);
-        if (data.images && data.images.length > 0) {
-          const primaryImage = data.images.find((img) => img.is_primary);
-          setSelectedImage(
-            primaryImage?.image_url ?? data.images?.[0]?.image_url ?? ""
-          );
-        }
+        setSelectedImage(getProductDisplayImage(data));
         // Scroll to top when product loads
         window.scrollTo(0, 0);
       } catch (err: any) {
@@ -138,7 +151,7 @@ const ProductDetailPage: React.FC = () => {
       try {
         const similar = await recommendationService.getSimilarProducts(
           product.id,
-          { limit: 6 }
+          { limit: 6 },
         );
 
         // Log similar products for debugging
@@ -182,7 +195,7 @@ const ProductDetailPage: React.FC = () => {
           product.id,
           currentPage,
           pageSize,
-          abortController.signal
+          abortController.signal,
         );
         setRatings(data);
       } catch (err: any) {
@@ -276,14 +289,14 @@ const ProductDetailPage: React.FC = () => {
       const updatedRatings = await ratingService.getRatings(
         product.id,
         1,
-        pageSize
+        pageSize,
       );
       setRatings(updatedRatings);
 
       if (categorySlug && productSlug) {
         const updatedProduct = await productService.getProductDetail(
           categorySlug,
-          productSlug
+          productSlug,
         );
         setProduct(updatedProduct);
       }
@@ -360,21 +373,32 @@ const ProductDetailPage: React.FC = () => {
           <div className={styles.productLayout}>
             <div className={styles.imageSection}>
               <div className={styles.mainImage}>
-                <img src={selectedImage} alt={product.name} />
+                <img
+                  src={selectedImage || getProductDisplayImage(product)}
+                  alt={product.name}
+                  onError={(e) => {
+                    const target = e.currentTarget;
+                    target.onerror = null;
+                    target.src = getProductDisplayImage(product);
+                  }}
+                />
               </div>
-              {product.images && product.images.length > 0 && (
+              {productImageGallery.length > 0 && (
                 <div className={styles.thumbnailList}>
-                  {product.images.map((img, idx) => (
+                  {productImageGallery.map((imageUrl, idx) => (
                     <img
-                      key={img.id}
-                      src={img.image_url}
+                      key={`${product.id}-thumb-${idx}`}
+                      src={imageUrl}
                       alt={`${product.name} ${idx + 1}`}
                       className={
-                        selectedImage === img.image_url
-                          ? styles.activeThumb
-                          : ""
+                        selectedImage === imageUrl ? styles.activeThumb : ""
                       }
-                      onClick={() => setSelectedImage(img.image_url)}
+                      onClick={() => setSelectedImage(imageUrl)}
+                      onError={(e) => {
+                        const target = e.currentTarget;
+                        target.onerror = null;
+                        target.src = getProductDisplayImage(product);
+                      }}
                     />
                   ))}
                 </div>
@@ -424,8 +448,8 @@ const ProductDetailPage: React.FC = () => {
                   {!product.available
                     ? "This item is temporarily out of stock"
                     : isAddingToCart
-                    ? "Adding..."
-                    : "Add to Cart"}
+                      ? "Adding..."
+                      : "Add to Cart"}
                 </button>
 
                 <button
@@ -462,7 +486,7 @@ const ProductDetailPage: React.FC = () => {
 
               <div className={styles.tabContent}>
                 {activeTab === "description" ? (
-                  <p className={styles.description}>{product.description}</p>
+                  <p className={styles.description}>{displayDescription}</p>
                 ) : (
                   <div>
                     <div className={styles.reviewsList}>
@@ -490,7 +514,7 @@ const ProductDetailPage: React.FC = () => {
                               </p>
                               <span className={styles.reviewDate}>
                                 {new Date(review.created_at).toLocaleDateString(
-                                  "vi-VN"
+                                  "en-US",
                                 )}
                               </span>
                             </div>
@@ -508,7 +532,7 @@ const ProductDetailPage: React.FC = () => {
                                 ← Previous page
                               </button>
                               <span className={styles.pageInfo}>
-                                Trang {currentPage} /{" "}
+                                Page {currentPage} /{" "}
                                 {Math.ceil(ratings.count / pageSize)}
                                 <span
                                   style={{
@@ -521,7 +545,7 @@ const ProductDetailPage: React.FC = () => {
                                   ({(currentPage - 1) * pageSize + 1}-
                                   {Math.min(
                                     currentPage * pageSize,
-                                    ratings.count
+                                    ratings.count,
                                   )}{" "}
                                   / {ratings.count} reviews)
                                 </span>

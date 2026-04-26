@@ -1,5 +1,4 @@
-import axiosInstance from "./axios.instance";
-import { API_ENDPOINTS } from "../config/api.config";
+import { makeAppError, OFFLINE_KEYS, readJSON, writeJSON } from "./offlineDb";
 
 // Types
 export interface Address {
@@ -44,125 +43,129 @@ export interface AddressListResponse {
 
 // Address Service
 class AddressService {
+  private getAllRaw(): Address[] {
+    return readJSON<Address[]>(OFFLINE_KEYS.ADDRESSES, []);
+  }
+
+  private getAllActive(): Address[] {
+    return this.getAllRaw().filter((a) => a.is_active);
+  }
+
+  private saveAll(addresses: Address[]): void {
+    writeJSON<Address[]>(OFFLINE_KEYS.ADDRESSES, addresses);
+  }
+
   /**
    * Get all addresses for the authenticated user
    */
   async getAddresses(): Promise<Address[]> {
-    try {
-      const response = await axiosInstance.get<AddressListResponse>(
-        API_ENDPOINTS.ADDRESSES.LIST
-      );
-      
-      if (response.data.success) {
-        return response.data.data;
-      }
-      
-      throw new Error("Failed to fetch addresses");
-    } catch (error: any) {
-      console.error("Get addresses error:", error);
-      throw error.response?.data || error;
-    }
+    return this.getAllActive();
   }
 
   /**
    * Get a single address by ID
    */
   async getAddress(id: number): Promise<Address> {
-    try {
-      const response = await axiosInstance.get<AddressResponse>(
-        API_ENDPOINTS.ADDRESSES.DETAIL(id)
-      );
-      
-      if (response.data.success && response.data.data) {
-        return response.data.data;
-      }
-      
-      throw new Error("Failed to fetch address");
-    } catch (error: any) {
-      console.error("Get address error:", error);
-      throw error.response?.data || error;
+    const address = this.getAllActive().find((a) => a.id === id);
+    if (!address) {
+      throw makeAppError("Address not found", {
+        detail: "Address not found",
+        statusCode: 404,
+      });
     }
+    return address;
   }
 
   /**
    * Create a new address
    */
   async createAddress(data: CreateAddressData): Promise<Address> {
-    try {
-      const response = await axiosInstance.post<AddressResponse>(
-        API_ENDPOINTS.ADDRESSES.LIST,
-        data
-      );
-      
-      if (response.data.success && response.data.data) {
-        return response.data.data;
-      }
-      
-      throw new Error("Failed to create address");
-    } catch (error: any) {
-      console.error("Create address error:", error);
-      throw error.response?.data || error;
-    }
+    const all = this.getAllRaw();
+    const nextId = all.reduce((m, a) => Math.max(m, a.id), 0) + 1;
+    const created_at = new Date().toISOString();
+
+    const shouldBeDefault =
+      !!data.is_default || all.filter((a) => a.is_active).length === 0;
+    const nextAll = all.map((a) =>
+      shouldBeDefault ? { ...a, is_default: false } : a,
+    );
+
+    const newAddr: Address = {
+      id: nextId,
+      street: data.street,
+      ward: data.ward,
+      province: data.province,
+      phone: data.phone,
+      is_default: shouldBeDefault,
+      is_active: true,
+      created_at,
+    };
+
+    nextAll.push(newAddr);
+    this.saveAll(nextAll);
+    return newAddr;
   }
 
   /**
    * Update an existing address (partial update)
    */
   async updateAddress(id: number, data: UpdateAddressData): Promise<Address> {
-    try {
-      const response = await axiosInstance.patch<AddressResponse>(
-        API_ENDPOINTS.ADDRESSES.DETAIL(id),
-        data
-      );
-      
-      if (response.data.success && response.data.data) {
-        return response.data.data;
-      }
-      
-      throw new Error("Failed to update address");
-    } catch (error: any) {
-      console.error("Update address error:", error);
-      throw error.response?.data || error;
+    const all = this.getAllRaw();
+    const idx = all.findIndex((a) => a.id === id && a.is_active);
+    if (idx < 0) {
+      throw makeAppError("Address not found", {
+        detail: "Address not found",
+        statusCode: 404,
+      });
     }
+    const updated = { ...all[idx], ...data };
+    all[idx] = updated;
+
+    if (data.is_default) {
+      for (let i = 0; i < all.length; i++) {
+        if (all[i].id !== id) all[i] = { ...all[i], is_default: false };
+      }
+    }
+
+    this.saveAll(all);
+    return updated;
   }
 
   /**
    * Delete an address (soft delete)
    */
   async deleteAddress(id: number): Promise<void> {
-    try {
-      const response = await axiosInstance.delete<AddressResponse>(
-        API_ENDPOINTS.ADDRESSES.DETAIL(id)
-      );
-      
-      if (!response.data.success) {
-        throw new Error(response.data.message || "Failed to delete address");
-      }
-    } catch (error: any) {
-      console.error("Delete address error:", error);
-      throw error.response?.data || error;
+    const all = this.getAllRaw();
+    const idx = all.findIndex((a) => a.id === id && a.is_active);
+    if (idx < 0) {
+      throw makeAppError("Address not found", {
+        detail: "Address not found",
+        statusCode: 404,
+      });
     }
+    all[idx] = { ...all[idx], is_active: false, is_default: false };
+    this.saveAll(all);
   }
 
   /**
    * Set an address as default
    */
   async setDefaultAddress(id: number): Promise<Address> {
-    try {
-      const response = await axiosInstance.post<AddressResponse>(
-        API_ENDPOINTS.ADDRESSES.SET_DEFAULT(id)
-      );
-      
-      if (response.data.success && response.data.data) {
-        return response.data.data;
-      }
-      
-      throw new Error("Failed to set default address");
-    } catch (error: any) {
-      console.error("Set default address error:", error);
-      throw error.response?.data || error;
+    const all = this.getAllRaw();
+    const idx = all.findIndex((a) => a.id === id && a.is_active);
+    if (idx < 0) {
+      throw makeAppError("Address not found", {
+        detail: "Address not found",
+        statusCode: 404,
+      });
     }
+    for (let i = 0; i < all.length; i++) {
+      all[i] = { ...all[i], is_default: all[i].id === id };
+    }
+    this.saveAll(all);
+    return all[idx] as Address;
   }
 }
 
-export default new AddressService();
+const addressService = new AddressService();
+export default addressService;
