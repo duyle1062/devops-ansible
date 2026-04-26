@@ -76,4 +76,6 @@ jobs:
           key: ${{ secrets.VM_SSH_KEY }}
           script: |
             cd /home/ubuntu/devops-ansible/ansible
+            git pull
+            cd ansible
             ansible-playbook -i inventory.ini site.yml
