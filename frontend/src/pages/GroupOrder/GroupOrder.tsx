@@ -44,16 +44,15 @@ const GroupOrder: React.FC = () => {
   const [creatingOrder, setCreatingOrder] = useState(false);
   const [joiningOrder, setJoiningOrder] = useState(false);
   const [expandedItems, setExpandedItems] = useState<Record<string, boolean>>(
-    {}
+    {},
   );
   const [paymentMethod, setPaymentMethod] = useState<
     "CASH" | "CARD" | "WALLET" | "THIRD_PARTY"
   >("CASH");
   const [addresses, setAddresses] = useState<Address[]>([]);
   const [selectedAddressId, setSelectedAddressId] = useState<number | null>(
-    null
+    null,
   );
-  const [showPaymentOptions, setShowPaymentOptions] = useState(false);
 
   const [confirmationModal, setConfirmationModal] = useState<{
     isOpen: boolean;
@@ -70,7 +69,7 @@ const GroupOrder: React.FC = () => {
   const confirmAction = (
     title: string,
     message: string,
-    action: () => void
+    action: () => void,
   ) => {
     setConfirmationModal({
       isOpen: true,
@@ -89,7 +88,7 @@ const GroupOrder: React.FC = () => {
     const loadInitialData = async () => {
       try {
         const storedGroupOrderId = localStorage.getItem("activeGroupOrderId");
-        if (storedGroupOrderId && !groupData) {
+        if (storedGroupOrderId) {
           await loadGroupOrder(parseInt(storedGroupOrderId));
         }
 
@@ -110,9 +109,10 @@ const GroupOrder: React.FC = () => {
 
   // Poll for updates when in active mode
   useEffect(() => {
-    if (viewMode === "active" && groupData) {
+    const groupId = groupData?.id;
+    if (viewMode === "active" && groupId) {
       const interval = setInterval(() => {
-        loadGroupOrder(groupData.id, true);
+        loadGroupOrder(groupId, true);
       }, 5000); // Poll every 5 seconds
       return () => clearInterval(interval);
     }
@@ -197,7 +197,7 @@ const GroupOrder: React.FC = () => {
       setViewMode("active");
       localStorage.setItem(
         "activeGroupOrderId",
-        response.group_order.id.toString()
+        response.group_order.id.toString(),
       );
       toast.success(response.message || "Successfully joined group order!");
     } catch (error: any) {
@@ -224,7 +224,7 @@ const GroupOrder: React.FC = () => {
         } finally {
           setLoading(false);
         }
-      }
+      },
     );
   };
 
@@ -260,7 +260,7 @@ const GroupOrder: React.FC = () => {
         } catch (error: any) {
           toast.error(error.message || "Failed to remove item");
         }
-      }
+      },
     );
   };
 
@@ -334,7 +334,7 @@ const GroupOrder: React.FC = () => {
         } finally {
           setLoading(false);
         }
-      }
+      },
     );
   };
 
@@ -411,7 +411,7 @@ const GroupOrder: React.FC = () => {
     groupData.members.forEach((member) => {
       // Find the corresponding user_id by matching email
       const matchingItem = activeItems.find(
-        (item) => item.user_email === member.user_email
+        (item) => item.user_email === member.user_email,
       );
       if (matchingItem) {
         userLookup[matchingItem.user_id] = member;
@@ -471,7 +471,6 @@ const GroupOrder: React.FC = () => {
             </button>
           </div>
           {Object.entries(userItemsMap).map(([userId, items]) => {
-            const userIdNum = parseInt(userId);
             const firstItem = items[0];
             if (!firstItem) return null;
 
@@ -479,7 +478,7 @@ const GroupOrder: React.FC = () => {
             const userEmail = firstItem.user_email;
             const userTotal = items.reduce(
               (sum, i) => sum + (Number(i.line_total) || 0),
-              0
+              0,
             );
             const isExpanded = expandedItems[`user_${userId}`];
 
@@ -709,7 +708,7 @@ const GroupOrder: React.FC = () => {
                     localStorage.removeItem("activeGroupOrderId");
                     setGroupData(null);
                     setViewMode("selection");
-                  }
+                  },
                 );
               }}
             >

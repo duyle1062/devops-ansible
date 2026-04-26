@@ -1,4 +1,11 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  useCallback,
+  ReactNode,
+} from "react";
 import authService, { UserData, UserRole } from "../services/auth.service";
 
 interface AuthContextType {
@@ -29,6 +36,21 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<UserData | null>(null);
   const [loading, setLoading] = useState(true);
 
+  const logout = useCallback(async () => {
+    await authService.logout();
+    setUser(null);
+  }, []);
+
+  const refreshUser = useCallback(async () => {
+    try {
+      const userData = await authService.getCurrentUser();
+      setUser(userData);
+    } catch (error) {
+      console.error("Failed to refresh user:", error);
+      logout();
+    }
+  }, [logout]);
+
   // Load user from localStorage on mount
   useEffect(() => {
     const initAuth = async () => {
@@ -51,7 +73,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     };
 
     initAuth();
-  }, []);
+  }, [refreshUser]);
 
   const login = async (email: string, password: string) => {
     try {
@@ -60,21 +82,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setUser(userData);
     } catch (error) {
       throw error;
-    }
-  };
-
-  const logout = async () => {
-    await authService.logout();
-    setUser(null);
-  };
-
-  const refreshUser = async () => {
-    try {
-      const userData = await authService.getCurrentUser();
-      setUser(userData);
-    } catch (error) {
-      console.error("Failed to refresh user:", error);
-      logout();
     }
   };
 

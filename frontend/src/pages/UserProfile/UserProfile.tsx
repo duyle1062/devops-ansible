@@ -1,7 +1,17 @@
 import React, { useState, FormEvent, ChangeEvent, useEffect } from "react";
 import styles from "./UserProfile.module.css";
-import { FaRegEye, FaRegEyeSlash, FaUser, FaEnvelope, FaPhone, 
-  FaVenusMars, FaMapMarkerAlt, FaLock, FaUserCircle, FaEdit } from "react-icons/fa";
+import {
+  FaRegEye,
+  FaRegEyeSlash,
+  FaUser,
+  FaEnvelope,
+  FaPhone,
+  FaVenusMars,
+  FaMapMarkerAlt,
+  FaLock,
+  FaUserCircle,
+  FaEdit,
+} from "react-icons/fa";
 import userService, { UpdateProfileData } from "../../services/user.service";
 import addressService, {
   CreateAddressData,
@@ -125,12 +135,12 @@ const AddressModal: React.FC<AddressModalProps> = ({
 };
 
 const UserProfile: React.FC = () => {
-  const { user, refreshUser } = useAuth();
+  const { refreshUser } = useAuth();
   const [activeTab, setActiveTab] = useState<ActiveTab>("profile");
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<string>("");
   const [messageType, setMessageType] = useState<"success" | "error">(
-    "success"
+    "success",
   );
 
   const [confirmationModal, setConfirmationModal] = useState<{
@@ -153,7 +163,7 @@ const UserProfile: React.FC = () => {
   const [addresses, setAddresses] = useState<Address[]>([]);
   const [isAddressModalOpen, setIsAddressModalOpen] = useState(false);
   const [currentAddress, setCurrentAddress] = useState<Partial<Address> | null>(
-    null
+    null,
   );
 
   const [passwordData, setPasswordData] = useState({
@@ -224,7 +234,7 @@ const UserProfile: React.FC = () => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const handleProfileChange = (
-    e: ChangeEvent<HTMLInputElement | HTMLSelectElement>
+    e: ChangeEvent<HTMLInputElement | HTMLSelectElement>,
   ) => {
     const { name, value } = e.target;
     setEditProfile((prev) => ({ ...prev, [name]: value }));
@@ -259,7 +269,7 @@ const UserProfile: React.FC = () => {
       console.error("Failed to update profile:", error);
       showMessage(
         error.errors?.detail || error.message || "Unable to update profile",
-        "error"
+        "error",
       );
     } finally {
       setLoading(false);
@@ -346,7 +356,7 @@ const UserProfile: React.FC = () => {
       console.error("Failed to save address:", error);
       showMessage(
         error.errors?.detail || error.message || "Unable to save address",
-        "error"
+        "error",
       );
     } finally {
       setLoading(false);
@@ -399,7 +409,7 @@ const UserProfile: React.FC = () => {
       return (
         <form onSubmit={handleProfileSubmit} className={styles.fadeIn}>
           <h3>Edit Personal Information</h3>
-          
+
           <div className={styles.infoGrid}>
             <div className={styles.formGroup}>
               <label htmlFor="lastname">Last Name</label>
@@ -433,7 +443,11 @@ const UserProfile: React.FC = () => {
               disabled
               readOnly
             />
-            <small style={{color: '#888', marginTop: '5px', display: 'block'}}>Email cannot be changed.</small>
+            <small
+              style={{ color: "#888", marginTop: "5px", display: "block" }}
+            >
+              Email cannot be changed.
+            </small>
           </div>
 
           <div className={styles.infoGrid}>
@@ -485,66 +499,66 @@ const UserProfile: React.FC = () => {
       <div className={styles.profileView}>
         {/* Header section: Avatar + Name */}
         <div className={styles.profileHeader}>
-            <div className={styles.avatarWrapper}>
-                <FaUser />
-            </div>
-            <div className={styles.profileSummary}>
-                <h2>{profile.lastname} {profile.firstname}</h2>
-                <p>{profile.email}</p>
-            </div>
+          <div className={styles.avatarWrapper}>
+            <FaUser />
+          </div>
+          <div className={styles.profileSummary}>
+            <h2>
+              {profile.lastname} {profile.firstname}
+            </h2>
+            <p>{profile.email}</p>
+          </div>
         </div>
 
         <h3>Personal Details</h3>
         <div className={styles.infoGrid}>
-            <div className={styles.infoCard}>
-                <div className={styles.infoLabel}>
-                    <FaUserCircle /> Fullname
-                </div>
-                <div className={styles.infoValue}>
-                    {profile.lastname} {profile.firstname}
-                </div>
+          <div className={styles.infoCard}>
+            <div className={styles.infoLabel}>
+              <FaUserCircle /> Fullname
             </div>
+            <div className={styles.infoValue}>
+              {profile.lastname} {profile.firstname}
+            </div>
+          </div>
 
-            <div className={styles.infoCard}>
-                <div className={styles.infoLabel}>
-                    <FaEnvelope /> Email
-                </div>
-                <div className={styles.infoValue}>
-                    {profile.email}
-                </div>
+          <div className={styles.infoCard}>
+            <div className={styles.infoLabel}>
+              <FaEnvelope /> Email
             </div>
+            <div className={styles.infoValue}>{profile.email}</div>
+          </div>
 
-            <div className={styles.infoCard}>
-                <div className={styles.infoLabel}>
-                    <FaPhone /> Phone
-                </div>
-                <div className={styles.infoValue}>
-                    {profile.phone || "Not provided"}
-                </div>
+          <div className={styles.infoCard}>
+            <div className={styles.infoLabel}>
+              <FaPhone /> Phone
             </div>
+            <div className={styles.infoValue}>
+              {profile.phone || "Not provided"}
+            </div>
+          </div>
 
-            <div className={styles.infoCard}>
-                <div className={styles.infoLabel}>
-                    <FaVenusMars /> Gender
-                </div>
-                <div className={styles.infoValue}>
-                    {profile.gender === Gender.MALE
-                        ? "Male"
-                        : profile.gender === Gender.FEMALE
-                        ? "Female"
-                        : "Other"}
-                </div>
+          <div className={styles.infoCard}>
+            <div className={styles.infoLabel}>
+              <FaVenusMars /> Gender
             </div>
+            <div className={styles.infoValue}>
+              {profile.gender === Gender.MALE
+                ? "Male"
+                : profile.gender === Gender.FEMALE
+                  ? "Female"
+                  : "Other"}
+            </div>
+          </div>
         </div>
 
         <div style={{ marginTop: "2rem" }}>
-            <button
-              className={styles.button}
-              onClick={() => setIsEditingProfile(true)}
-              disabled={loading}
-            >
-              <FaEdit /> Edit Profile
-            </button>
+          <button
+            className={styles.button}
+            onClick={() => setIsEditingProfile(true)}
+            disabled={loading}
+          >
+            <FaEdit /> Edit Profile
+          </button>
         </div>
       </div>
     );

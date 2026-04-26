@@ -1,9 +1,4 @@
-import {
-  Cart,
-  AddToCartData,
-  UpdateCartItemData,
-  CartResponse,
-} from "../types/cart.types";
+import { Cart, AddToCartData, UpdateCartItemData } from "../types/cart.types";
 import {
   getProducts,
   makeAppError,
