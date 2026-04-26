@@ -1,13 +1,12 @@
 import React, { useState } from "react";
 import styles from "./Register.module.css";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { FaRegEye, FaRegEyeSlash } from "react-icons/fa";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import Header from "../../components/Header/Header";
 import Footer from "../../components/Footer/Footer";
 import authService, { Gender } from "../../services/auth.service";
-import logoImage from "../../assets/images/Logo_FastFood.png";
 
 interface Errors {
   firstName?: string;
@@ -22,7 +21,6 @@ interface Errors {
 }
 
 const RegisterForm: React.FC = () => {
-  const navigate = useNavigate();
   const [firstName, setFirstName] = useState<string>("");
   const [lastName, setLastName] = useState<string>("");
   const [gender, setGender] = useState<string>("");
@@ -124,7 +122,7 @@ const RegisterForm: React.FC = () => {
             closeOnClick: true,
             pauseOnHover: true,
             draggable: true,
-          }
+          },
         );
 
         // Reset form after successful registration

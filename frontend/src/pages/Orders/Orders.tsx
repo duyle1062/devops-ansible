@@ -1,9 +1,9 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { getUserOrders } from "../../services/order.service";
 import { Order } from "../../types/order.types";
 import styles from "./Orders.module.css";
-import { toast, ToastContainer } from "react-toastify";
+import { ToastContainer } from "react-toastify";
 import Header from "../../components/Header/Header";
 import Footer from "../../components/Footer/Footer";
 
@@ -32,7 +32,7 @@ const getStatusLabel = (status: string) => {
 const formatCurrency = (amount: string | number) => {
   return (
     new Intl.NumberFormat("vi-VN", { style: "decimal" }).format(
-      Number(amount)
+      Number(amount),
     ) + " ₫"
   );
 };
@@ -56,7 +56,7 @@ const Orders: React.FC = () => {
   const [totalPages, setTotalPages] = useState(1);
   const [totalOrders, setTotalOrders] = useState(0);
   const [selectedStatus, setSelectedStatus] = useState<OrderStatus | "ALL">(
-    "ALL"
+    "ALL",
   );
   const pageSize = 10;
 
@@ -75,37 +75,40 @@ const Orders: React.FC = () => {
     setCurrentPage(1);
   }, [selectedStatus]);
 
+  const loadOrders = useCallback(
+    async (page: number = 1) => {
+      try {
+        setLoading(true);
+        setError(null);
+        const response = await getUserOrders(page, pageSize, selectedStatus);
+        let ordersList = Array.isArray(response)
+          ? response
+          : response.results || [];
+
+        const sortedOrders = ordersList.sort(
+          (a, b) =>
+            new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
+        );
+        setOrders(sortedOrders);
+
+        // Set pagination info
+        if (!Array.isArray(response)) {
+          setTotalOrders(response.count || 0);
+          setTotalPages(Math.ceil((response.count || 0) / pageSize));
+        }
+      } catch (err: any) {
+        setError(err.message || "Failed to load orders");
+        console.error("Error loading orders:", err);
+      } finally {
+        setLoading(false);
+      }
+    },
+    [pageSize, selectedStatus],
+  );
+
   useEffect(() => {
     loadOrders(currentPage);
-  }, [currentPage, selectedStatus]);
-
-  const loadOrders = async (page: number = 1) => {
-    try {
-      setLoading(true);
-      setError(null);
-      const response = await getUserOrders(page, pageSize, selectedStatus);
-      let ordersList = Array.isArray(response)
-        ? response
-        : response.results || [];
-
-      const sortedOrders = ordersList.sort(
-        (a, b) =>
-          new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-      );
-      setOrders(sortedOrders);
-
-      // Set pagination info
-      if (!Array.isArray(response)) {
-        setTotalOrders(response.count || 0);
-        setTotalPages(Math.ceil((response.count || 0) / pageSize));
-      }
-    } catch (err: any) {
-      setError(err.message || "Failed to load orders");
-      console.error("Error loading orders:", err);
-    } finally {
-      setLoading(false);
-    }
-  };
+  }, [currentPage, loadOrders]);
 
   const renderOrderList = () => (
     <>
@@ -175,10 +178,6 @@ const Orders: React.FC = () => {
       )}
     </>
   );
-
-  const renderOrderDetail = () => {
-    return null;
-  };
 
   if (loading) {
     return (

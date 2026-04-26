@@ -7,7 +7,6 @@ import Header from "../../components/Header/Header";
 import Footer from "../../components/Footer/Footer";
 import { useAuth } from "../../context/AuthContext";
 import authService, { UserRole } from "../../services/auth.service";
-import logoImage from "../../assets/images/Logo_FastFood.png";
 
 interface Errors {
   email?: string;
@@ -17,7 +16,7 @@ interface Errors {
 
 const LoginForm: React.FC = () => {
   const navigate = useNavigate();
-  const { login, user } = useAuth();
+  const { login } = useAuth();
   const [email, setEmail] = useState<string>("");
   const [password, setPassword] = useState<string>("");
   const [showPassword, setShowPassword] = useState<boolean>(false);

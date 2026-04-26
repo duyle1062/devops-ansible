@@ -2,22 +2,6 @@ import { Product } from "../types/product.types";
 import { getProducts } from "./offlineDb";
 import { getProductDisplayImage } from "../utils/dishImage.util";
 
-interface RecommendationResponse {
-  count: number;
-  next: string | null;
-  previous: string | null;
-  results: Product[];
-}
-
-interface TrackInteractionRequest {
-  product_id: number;
-}
-
-interface TrackInteractionResponse {
-  message: string;
-  interaction_id: number;
-}
-
 interface PopularProductsParams {
   limit?: number;
 }

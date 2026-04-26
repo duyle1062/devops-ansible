@@ -38,7 +38,7 @@ const CartScreen: React.FC = () => {
       return;
     }
     fetchCart();
-  }, [isAuthenticated]);
+  }, [isAuthenticated, navigate]);
 
   const [confirmationModal, setConfirmationModal] = useState<{
     isOpen: boolean;
@@ -75,7 +75,7 @@ const CartScreen: React.FC = () => {
     try {
       const updatedCart = await cartService.increaseQuantity(
         item.id,
-        item.quantity
+        item.quantity,
       );
       setCart(updatedCart);
     } catch (error: any) {
@@ -92,7 +92,7 @@ const CartScreen: React.FC = () => {
     try {
       const updatedCart = await cartService.decreaseQuantity(
         item.id,
-        item.quantity
+        item.quantity,
       );
       setCart(updatedCart);
     } catch (error: any) {

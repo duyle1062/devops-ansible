@@ -81,7 +81,20 @@ const ProductDetailPage: React.FC = () => {
   const pageSize = 5;
 
   const [similarProducts, setSimilarProducts] = useState<Product[]>([]);
-  const [similarLoading, setSimilarLoading] = useState(false);
+
+  const productImageGallery = useMemo(() => {
+    if (!product) return [];
+    return getProductImageGallery(product);
+  }, [product]);
+
+  const displayDescription = useMemo(() => {
+    if (!product) return "";
+    const desc = (product.description || "").trim();
+    if (!desc || desc.includes("(offline demo)")) {
+      return "This dish is prepared daily with fresh ingredients and a well-balanced flavor profile for a quick yet high-quality meal. It pairs nicely with fresh vegetables and a cold drink for a complete taste experience.";
+    }
+    return desc;
+  }, [product]);
 
   const productImageGallery = useMemo(() => {
     if (!product) return [];
@@ -147,7 +160,6 @@ const ProductDetailPage: React.FC = () => {
 
     const fetchSimilarProducts = async () => {
       if (!product?.id) return;
-      setSimilarLoading(true);
       try {
         const similar = await recommendationService.getSimilarProducts(
           product.id,
@@ -168,8 +180,6 @@ const ProductDetailPage: React.FC = () => {
         setSimilarProducts(similar);
       } catch (err) {
         console.error("Failed to fetch similar products:", err);
-      } finally {
-        setSimilarLoading(false);
       }
     };
 
