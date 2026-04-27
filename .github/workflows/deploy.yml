@@ -31,51 +31,51 @@ jobs:
         uses: appleboy/ssh-action@v0.1.6
         with:
           host: ${{ secrets.VM_HOST }}
-          username: ubuntu
+          username: ${{ secrets.VM_USER }}
           key: ${{ secrets.VM_SSH_KEY }}
           script: |
-            mkdir -p /home/ubuntu/devops-ansible/deploy
+            mkdir -p /home/${{ secrets.VM_USER }}/devops-ansible/deploy
 
       # 5. Clean old files
       - name: Clean deploy folder
         uses: appleboy/ssh-action@v0.1.6
         with:
           host: ${{ secrets.VM_HOST }}
-          username: ubuntu
+          username: ${{ secrets.VM_USER }}
           key: ${{ secrets.VM_SSH_KEY }}
           script: |
-            rm -rf /home/ubuntu/devops-ansible/deploy/*
+            rm -rf /home/${{ secrets.VM_USER }}/devops-ansible/deploy/*
 
       # 6. Copy build to server (FIXED)
       - name: Copy build to server
         uses: appleboy/scp-action@v0.1.4
         with:
           host: ${{ secrets.VM_HOST }}
-          username: ubuntu
+          username: ${{ secrets.VM_USER }}
           key: ${{ secrets.VM_SSH_KEY }}
           port: 22
           source: "frontend/build/"
-          target: "/home/ubuntu/devops-ansible/deploy/"
+          target: "/home/${{ secrets.VM_USER }}/devops-ansible/deploy/"
 
       # 7. Verify copy (debug)
       - name: Verify files on server
         uses: appleboy/ssh-action@v0.1.6
         with:
           host: ${{ secrets.VM_HOST }}
-          username: ubuntu
+          username: ${{ secrets.VM_USER }}
           key: ${{ secrets.VM_SSH_KEY }}
           script: |
-            ls -la /home/ubuntu/devops-ansible/deploy
+            ls -la /home/${{ secrets.VM_USER }}/devops-ansible/deploy
 
       # 8. Deploy with Ansible
       - name: Deploy with Ansible
         uses: appleboy/ssh-action@v0.1.6
         with:
           host: ${{ secrets.VM_HOST }}
-          username: ubuntu
+          username: ${{ secrets.VM_USER }}
           key: ${{ secrets.VM_SSH_KEY }}
           script: |
-            cd /home/ubuntu/devops-ansible/ansible
+            cd /home/${{ secrets.VM_USER }}/devops-ansible/ansible
             git pull
             cd ansible
             ansible-playbook -i inventory.ini site.yml
