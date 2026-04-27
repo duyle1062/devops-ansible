@@ -26,6 +26,30 @@ jobs:
           npm install
           npm run build
 
+      - name: Setup server (first time)
+        uses: appleboy/ssh-action@v0.1.6
+        with:
+          host: ${{ secrets.VM_HOST }}
+          username: ${{ secrets.VM_USER }}
+          key: ${{ secrets.VM_SSH_KEY }}
+          script: |
+            sudo yum update -y
+            sudo yum install -y git
+            sudo amazon-linux-extras install ansible2 -y
+
+      - name: Clone repo
+        uses: appleboy/ssh-action@v0.1.6
+        with:
+          host: ${{ secrets.VM_HOST }}
+          username: ${{ secrets.VM_USER }}
+          key: ${{ secrets.VM_SSH_KEY }}
+          script: |
+            if [ ! -d "/home/${{ secrets.VM_USER }}/devops-ansible" ]; then
+              git clone https://github.com/duyle1062/devops-ansible.git
+            else
+              cd devops-ansible && git pull
+            fi
+
       # 4. Prepare folder on EC2
       - name: Prepare deploy folder
         uses: appleboy/ssh-action@v0.1.6
@@ -75,7 +99,7 @@ jobs:
           username: ${{ secrets.VM_USER }}
           key: ${{ secrets.VM_SSH_KEY }}
           script: |
-            cd /home/${{ secrets.VM_USER }}/devops-ansible/ansible
+            cd /home/${{ secrets.VM_USER }}/devops-ansible/
             git pull
             cd ansible
             ansible-playbook -i inventory.ini site.yml
