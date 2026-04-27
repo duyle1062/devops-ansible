@@ -1,5 +1,12 @@
+- name: validate nginx config
+  become: yes
+  command: nginx -t
+  register: nginx_test
+  changed_when: false
+
 - name: restart nginx
+  become: yes
   service:
     name: nginx
     state: restarted
-  become: yes
+  when: nginx_test.rc == 0
