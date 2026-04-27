@@ -3,14 +3,13 @@
     name:
       - ca-certificates
       - curl
-      - software-properties-common
     state: present
     update_cache: yes
   become: yes
 
 - name: Install Docker
   yum:
-    name: docker.io
+    name: docker
     state: present
   become: yes
 
