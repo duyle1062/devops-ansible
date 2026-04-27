@@ -2,7 +2,8 @@ name: Build & Deploy to AWS
 
 on:
   push:
-    branches: ["main"]
+    branches:
+      - main
 
 jobs:
   deploy:
@@ -19,74 +20,64 @@ jobs:
         with:
           node-version: 18
 
-      # 3. Build React
-      - name: Build React
+      # 3. Install & Build React
+      - name: Install dependencies
         run: |
           cd frontend
           npm install
+
+      - name: Build React app
+        run: |
+          cd frontend
           npm run build
 
-      - name: Setup server (first time)
-        uses: appleboy/ssh-action@v0.1.6
-        with:
-          host: ${{ secrets.VM_HOST }}
-          username: ${{ secrets.VM_USER }}
-          key: ${{ secrets.VM_SSH_KEY }}
-          script: |
-            sudo yum update -y
-            sudo yum install -y git
-            sudo amazon-linux-extras install ansible2 -y
-
-      # 4. Prepare folder on EC2
-      - name: Prepare deploy folder
-        uses: appleboy/ssh-action@v0.1.6
-        with:
-          host: ${{ secrets.VM_HOST }}
-          username: ${{ secrets.VM_USER }}
-          key: ${{ secrets.VM_SSH_KEY }}
-          script: |
-            mkdir -p /home/${{ secrets.VM_USER }}/devops-ansible/deploy
-
-      # 5. Clean old files
-      - name: Clean deploy folder
-        uses: appleboy/ssh-action@v0.1.6
-        with:
-          host: ${{ secrets.VM_HOST }}
-          username: ${{ secrets.VM_USER }}
-          key: ${{ secrets.VM_SSH_KEY }}
-          script: |
-            rm -rf /home/${{ secrets.VM_USER }}/devops-ansible/deploy/*
-
-      # 6. Copy build to server (FIXED)
-      - name: Copy build to server
+      # 4. Copy build lên EC2
+      - name: Copy React build to server
         uses: appleboy/scp-action@v0.1.4
         with:
           host: ${{ secrets.VM_HOST }}
           username: ${{ secrets.VM_USER }}
           key: ${{ secrets.VM_SSH_KEY }}
-          port: 22
-          source: "frontend/build/"
+          source: "frontend/build/*"
           target: "/home/${{ secrets.VM_USER }}/devops-ansible/deploy/"
 
-      # 7. Verify copy (debug)
-      - name: Verify files on server
-        uses: appleboy/ssh-action@v0.1.6
+      # 5. Copy Ansible lên EC2
+      - name: Copy Ansible files to server
+        uses: appleboy/scp-action@v0.1.4
         with:
           host: ${{ secrets.VM_HOST }}
           username: ${{ secrets.VM_USER }}
           key: ${{ secrets.VM_SSH_KEY }}
-          script: |
-            ls -la /home/${{ secrets.VM_USER }}/devops-ansible/deploy
+          source: "ansible/*"
+          target: "/home/${{ secrets.VM_USER }}/devops-ansible/"
 
-      # 8. Deploy with Ansible
-      - name: Deploy with Ansible
+      # 6. Setup server (install git + ansible nếu chưa có)
+      - name: Setup server
         uses: appleboy/ssh-action@v0.1.6
         with:
           host: ${{ secrets.VM_HOST }}
           username: ${{ secrets.VM_USER }}
           key: ${{ secrets.VM_SSH_KEY }}
           script: |
-            cd /home/${{ secrets.VM_USER }}/devops-ansible/
-            git pull
-            cd ansible
+            # wait nếu yum bị lock
+            while sudo fuser /var/run/yum.pid >/dev/null 2>&1; do
+              echo "Waiting for yum lock..."
+              sleep 5
+            done
+
+            sudo yum update -y
+            sudo yum install -y git
+            sudo amazon-linux-extras install ansible2 -y
+
+            mkdir -p /home/${{ secrets.VM_USER }}/devops-ansible/deploy
+
+      # 7. Deploy bằng Ansible
+      - name: Run Ansible
+        uses: appleboy/ssh-action@v0.1.6
+        with:
+          host: ${{ secrets.VM_HOST }}
+          username: ${{ secrets.VM_USER }}
+          key: ${{ secrets.VM_SSH_KEY }}
+          script: |
+            cd /home/${{ secrets.VM_USER }}/devops-ansible/ansible
             ansible-playbook -i inventory.ini site.yml
