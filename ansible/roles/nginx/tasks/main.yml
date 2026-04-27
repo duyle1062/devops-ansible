@@ -1,8 +1,10 @@
-- name: Install nginx
-  apt:
+- name: Install nginx (RHEL/Amazon Linux)
+  yum:
     name: nginx
     state: present
+    update_cache: yes
   become: yes
+  when: ansible_os_family in ["RedHat"]
 
 - name: Start nginx
   service:
@@ -11,9 +13,10 @@
     enabled: yes
   become: yes
 
-- name: Configure nginx
+- name: Configure nginx (Amazon Linux 2)
   template:
     src: nginx.conf.j2
-    dest: /etc/nginx/sites-available/default
+    dest: /etc/nginx/nginx.conf
   notify: restart nginx
   become: yes
+  when: ansible_os_family in ["RedHat"]
