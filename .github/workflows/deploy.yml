@@ -37,19 +37,6 @@ jobs:
             sudo yum install -y git
             sudo amazon-linux-extras install ansible2 -y
 
-      - name: Clone repo
-        uses: appleboy/ssh-action@v0.1.6
-        with:
-          host: ${{ secrets.VM_HOST }}
-          username: ${{ secrets.VM_USER }}
-          key: ${{ secrets.VM_SSH_KEY }}
-          script: |
-            if [ ! -d "/home/${{ secrets.VM_USER }}/devops-ansible" ]; then
-              git clone https://github.com/duyle1062/devops-ansible.git
-            else
-              cd devops-ansible && git pull
-            fi
-
       # 4. Prepare folder on EC2
       - name: Prepare deploy folder
         uses: appleboy/ssh-action@v0.1.6
