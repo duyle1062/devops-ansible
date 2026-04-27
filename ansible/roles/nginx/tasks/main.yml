@@ -1,3 +1,5 @@
+# ansible/roles/nginx/tasks/main.yml (ref f9abee01e9cbf98d0ad48babd915bd9f4e00408d)
+
 - name: Install nginx on Amazon Linux 2 (via amazon-linux-extras)
   become: yes
   command: amazon-linux-extras install -y nginx1
@@ -17,17 +19,28 @@
     - ansible_os_family == "RedHat"
     - not (ansible_distribution == "Amazon" and ansible_distribution_major_version | int == 2)
 
-- name: Start nginx
-  become: yes
-  service:
-    name: nginx
-    state: started
-    enabled: yes
-
+# Apply config BEFORE starting nginx
 - name: Configure nginx (Amazon Linux 2)
   become: yes
   template:
     src: nginx.conf.j2
     dest: /etc/nginx/nginx.conf
-  notify: restart nginx
-  when: ansible_os_family == "RedHat"
+    owner: root
+    group: root
+    mode: "0644"
+  when:
+    - ansible_distribution == "Amazon"
+    - ansible_distribution_major_version | int == 2
+
+- name: Validate nginx configuration
+  become: yes
+  command: nginx -t
+  register: nginx_test
+  changed_when: false
+
+- name: Start and enable nginx
+  become: yes
+  service:
+    name: nginx
+    state: started
+    enabled: yes
