@@ -17,17 +17,32 @@
     - ansible_os_family == "RedHat"
     - not (ansible_distribution == "Amazon" and ansible_distribution_major_version | int == 2)
 
-- name: Start nginx
+# ansible/roles/nginx/tasks/main.yml
+
+- name: Configure nginx
+  become: yes
+  template:
+    src: nginx.conf.j2
+    dest: /etc/nginx/nginx.conf
+    mode: "0644"
+  when: ansible_os_family == "RedHat"
+
+- name: Validate nginx configuration
+  become: yes
+  command: nginx -t
+  register: nginx_test
+  changed_when: false
+
+- name: Ensure nginx is started and enabled
   become: yes
   service:
     name: nginx
     state: started
     enabled: yes
 
-- name: Configure nginx (Amazon Linux 2)
+- name: Start nginx
   become: yes
-  template:
-    src: nginx.conf.j2
-    dest: /etc/nginx/nginx.conf
-  notify: restart nginx
-  when: ansible_os_family == "RedHat"
+  service:
+    name: nginx
+    state: started
+    enabled: yes
