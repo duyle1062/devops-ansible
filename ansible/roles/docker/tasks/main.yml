@@ -1,7 +1,6 @@
 - name: Install required packages
-  apt:
+  yum:
     name:
-      - apt-transport-https
       - ca-certificates
       - curl
       - software-properties-common
@@ -10,7 +9,7 @@
   become: yes
 
 - name: Install Docker
-  apt:
+  yum:
     name: docker.io
     state: present
   become: yes
@@ -21,4 +20,3 @@
     state: started
     enabled: yes
   become: yes
-
