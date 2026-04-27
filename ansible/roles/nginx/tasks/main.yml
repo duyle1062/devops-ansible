@@ -1,22 +1,33 @@
-- name: Install nginx (RHEL/Amazon Linux)
+- name: Install nginx on Amazon Linux 2 (via amazon-linux-extras)
+  become: yes
+  command: amazon-linux-extras install -y nginx1
+  args:
+    creates: /usr/sbin/nginx
+  when:
+    - ansible_distribution == "Amazon"
+    - ansible_distribution_major_version | int == 2
+
+- name: Install nginx (RHEL/CentOS/Rocky/Alma via yum)
+  become: yes
   yum:
     name: nginx
     state: present
     update_cache: yes
-  become: yes
-  when: ansible_os_family in ["RedHat"]
+  when:
+    - ansible_os_family == "RedHat"
+    - not (ansible_distribution == "Amazon" and ansible_distribution_major_version | int == 2)
 
 - name: Start nginx
+  become: yes
   service:
     name: nginx
     state: started
     enabled: yes
-  become: yes
 
 - name: Configure nginx (Amazon Linux 2)
+  become: yes
   template:
     src: nginx.conf.j2
     dest: /etc/nginx/nginx.conf
   notify: restart nginx
-  become: yes
-  when: ansible_os_family in ["RedHat"]
+  when: ansible_os_family == "RedHat"
