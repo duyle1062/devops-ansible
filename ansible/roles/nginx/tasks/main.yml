@@ -23,7 +23,7 @@
 - name: Configure nginx (Amazon Linux 2)
   become: yes
   template:
-    src: nginx.conf.j2
+    src: site.conf.j2
     dest: /etc/nginx/conf.d/myapp.conf
     owner: root
     group: root
