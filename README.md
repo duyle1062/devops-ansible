@@ -60,7 +60,7 @@ This repository demonstrates a basic DevOps workflow that provisions AWS infrast
         | Ansible (CONFIG + DEPLOY + SECURITY CORE)                  |
         |                                                            |
         | inventory.ini -> localhost                                 |
-        | group_vars/all.yml -> shared configuration             |
+        | group_vars/all.yml -> shared config                        |
         |                                                            |
         | Ansible Vault                                              |
         | -> stores encrypted secrets                                |
