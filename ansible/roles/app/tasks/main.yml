@@ -6,7 +6,7 @@
 
 - name: Copy React build to nginx folder
   copy:
-    src: "{{ playbook_dir }}/../deploy/build/"
+    src: "{{ playbook_dir }}/../deploy/"
     dest: "{{ deploy_path }}/"
     owner: root
     group: root
