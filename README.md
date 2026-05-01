@@ -28,6 +28,10 @@
 
 This repository demonstrates a basic DevOps workflow that provisions AWS infrastructure with Terraform, builds a React frontend with GitHub Actions, and configures/deploys the application to Amazon EC2 using Ansible. The solution emphasizes repeatable deployments and security best practices such as secret management with Ansible Vault and least-privilege access.
 
+## Website:
+
+foodie-uit-nt132.com
+
 ## Architecture Diagram
 
 ```
